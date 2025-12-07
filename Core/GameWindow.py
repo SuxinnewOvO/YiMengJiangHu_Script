@@ -142,6 +142,17 @@ class GameWindow:
         except:
             return None
 
+    def bring_to_front(self):
+        """将游戏窗口激活到前台，保证按键/点击可用"""
+        if not self.hwnd or not win32gui.IsWindow(self.hwnd):
+            return False
+        try:
+            win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
+            win32gui.SetForegroundWindow(self.hwnd)
+            return True
+        except Exception:
+            return False
+
     def is_valid(self):
         return self.hwnd and win32gui.IsWindow(self.hwnd)
 

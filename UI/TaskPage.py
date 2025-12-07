@@ -52,27 +52,35 @@ class TaskPage(QWidget):
         right = QVBoxLayout()
         right.addSpacing(40)
 
-        # 绑定窗口按钮（保持原风格）
+        # 绑定窗口按钮（保持强调色块、凸显可点击性）
         self.bind_btn = QPushButton("绑定窗口")
         self.bind_btn.setFixedHeight(60)
         self.bind_btn.setStyleSheet("""
             QPushButton {
-                font-size: 20px; font-weight: bold; 
-                background: #0d7377; color: white; 
+                font-size: 20px; font-weight: bold;
+                color: white;
+                background-color: #0d7377;
+                border: 2px solid #0a5a5d;
                 border-radius: 12px;
+                padding: 10px 16px;
             }
-            QPushButton:hover { background: #0a5a5d; }
+            QPushButton:hover { background-color: #0a5a5d; }
+            QPushButton:pressed { background-color: #085054; }
         """)
 
-        # 三个操作按钮：改成和绑定一样的大按钮 + 浅蓝底色
+        # 其它功能按钮：恢复之前的立体按钮质感，避免像输入框
         btn_style = """
             QPushButton {
-                font-size: 17px; font-weight: bold;
-                background: #4da8da; color: white;
-                border-radius: 10px; padding: 12px;
+                font-size: 16px;
+                font-weight: bold;
+                color: #0d7377;
+                background-color: #f4f9ff;
+                border: 2px solid #0d7377;
+                border-radius: 10px;
+                padding: 10px 18px;
             }
-            QPushButton:hover { background: #3d8cc1; }
-            QPushButton:pressed { background: #2e6fa3; }
+            QPushButton:hover { background-color: #e4f4ff; }
+            QPushButton:pressed { background-color: #cce7ff; }
         """
 
         self.save_btn = QPushButton("保存列表")
@@ -218,7 +226,8 @@ class TaskPage(QWidget):
 
     def _run_init_after_bind(self, game):
         """窗口绑定完成后，等待一段时间再执行初始化"""
-        time.sleep(1.5)
+        logger.info("窗口已绑定，等待 2 秒后自动初始化环境...")
+        time.sleep(2.0)
         try:
             init_task = InitEnvironment(game)
             init_task.run()

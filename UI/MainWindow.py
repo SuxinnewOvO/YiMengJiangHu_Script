@@ -2,6 +2,8 @@
 from PyQt5.QtWidgets import QMainWindow, QWidget, QStackedWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import Qt
 import os
+import time
+import win32gui
 
 class MainWindow(QMainWindow):
     def __init__(self):

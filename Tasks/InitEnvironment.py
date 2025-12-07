@@ -3,6 +3,7 @@ import cv2
 from Logger.ScriptLogger import logger
 from pynput.keyboard import Controller as KeyboardController
 from pynput.keyboard import Key
+import os
 
 
 class InitEnvironment:
@@ -36,7 +37,13 @@ class InitEnvironment:
         if img is None:
             return False
 
-        template_path = "Resources/templates/settings_flag.png"
+        # 截图为 RGB，需要转换为 OpenCV 的 BGR 才能正确匹配
+        try:
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        except Exception:
+            pass
+
+        template_path = os.path.join(os.path.dirname(__file__), "..", "Resources", "templates", "settings_flag.png")
         template = cv2.imread(template_path, cv2.IMREAD_COLOR)
         if template is None:
             logger.warning("未找到设置识别模板，请检查路径！")
@@ -86,6 +93,12 @@ class InitEnvironment:
         success = False
         for attempt in range(1, self.max_retries + 1):
             logger.info(f"第 {attempt} 次尝试打开设置界面...")
+            # 确保游戏窗口在前台再发 ESC
+            try:
+                self.window.bring_to_front()
+            except Exception:
+                pass
+
             self.press_esc()
             time.sleep(2.0)
 
