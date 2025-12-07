@@ -3,8 +3,11 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QListWidget, QPushButton, QVB
 from PyQt5.QtCore import Qt, QDir
 from Core.GameWindow import GameWindow
 from Logger.ScriptLogger import logger
+from Tasks.InitEnvironment import InitEnvironment
 import json
 import os
+import threading
+import time
 
 # 专门存放执行列表的文件夹
 LISTS_DIR = "ExecutionLists"
@@ -199,7 +202,10 @@ class TaskPage(QWidget):
                 QMessageBox.information(self, "绑定成功",
                                         "游戏窗口已成功绑定并强制为 1280×720\n位置：屏幕左上角 (0,0)\n已自动屏蔽“窗口已失效”弹窗")
 
-            self.bind_btn.setText("重新绑定")
+                # 绑定后等待一段时间再自动初始化环境
+                threading.Thread(target=self._run_init_after_bind, args=(game,), daemon=True).start()
+
+                self.bind_btn.setText("重新绑定")
 
         except Exception as e:
             import traceback
@@ -209,3 +215,12 @@ class TaskPage(QWidget):
             self.bind_btn.setText("绑定窗口")
         finally:
             self.bind_btn.setEnabled(True)
+
+    def _run_init_after_bind(self, game):
+        """窗口绑定完成后，等待一段时间再执行初始化"""
+        time.sleep(1.5)
+        try:
+            init_task = InitEnvironment(game)
+            init_task.run()
+        except Exception as e:
+            logger.error(f"自动初始化失败：{e}")
