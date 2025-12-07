@@ -1,10 +1,12 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QListWidget, QPushButton, QVBoxLayout,
                              QLabel, QInputDialog, QMessageBox, QListWidgetItem)
-from PyQt5.QtCore import Qt, QDir
+from PyQt5.QtCore import Qt, QDir, QTimer
 from Core.GameWindow import GameWindow
 from Logger.ScriptLogger import logger
+from Tasks.InitEnvironment import InitEnvironment
 import json
 import os
+import threading
 
 # 专门存放执行列表的文件夹
 LISTS_DIR = "ExecutionLists"
@@ -49,27 +51,38 @@ class TaskPage(QWidget):
         right = QVBoxLayout()
         right.addSpacing(40)
 
-        # 绑定窗口按钮（保持原风格）
+        # 绑定窗口按钮（保持强调色块、凸显可点击性）
         self.bind_btn = QPushButton("绑定窗口")
+        self.init_btn = QPushButton("初始化")
         self.bind_btn.setFixedHeight(60)
+        self.init_btn.setFixedHeight(60)
         self.bind_btn.setStyleSheet("""
             QPushButton {
-                font-size: 20px; font-weight: bold; 
-                background: #0d7377; color: white; 
+                font-size: 20px; font-weight: bold;
+                color: white;
+                background-color: #0d7377;
+                border: 2px solid #0a5a5d;
                 border-radius: 12px;
+                padding: 10px 16px;
             }
-            QPushButton:hover { background: #0a5a5d; }
+            QPushButton:hover { background-color: #0a5a5d; }
+            QPushButton:pressed { background-color: #085054; }
         """)
+        self.init_btn.setStyleSheet(self.bind_btn.styleSheet())
 
-        # 三个操作按钮：改成和绑定一样的大按钮 + 浅蓝底色
+        # 其它功能按钮：恢复之前的立体按钮质感，避免像输入框
         btn_style = """
             QPushButton {
-                font-size: 17px; font-weight: bold;
-                background: #4da8da; color: white;
-                border-radius: 10px; padding: 12px;
+                font-size: 16px;
+                font-weight: bold;
+                color: #0d7377;
+                background-color: #f4f9ff;
+                border: 2px solid #0d7377;
+                border-radius: 10px;
+                padding: 10px 18px;
             }
-            QPushButton:hover { background: #3d8cc1; }
-            QPushButton:pressed { background: #2e6fa3; }
+            QPushButton:hover { background-color: #e4f4ff; }
+            QPushButton:pressed { background-color: #cce7ff; }
         """
 
         self.save_btn = QPushButton("保存列表")
@@ -81,6 +94,7 @@ class TaskPage(QWidget):
             btn.setStyleSheet(btn_style)
 
         right.addWidget(self.bind_btn)
+        right.addWidget(self.init_btn)
         right.addSpacing(20)
         right.addWidget(self.save_btn)
         right.addWidget(self.load_btn)
@@ -92,6 +106,7 @@ class TaskPage(QWidget):
         self.load_btn.clicked.connect(self.load_execution_list)
         self.reset_btn.clicked.connect(self.reset_execution_list)
         self.bind_btn.clicked.connect(self.bind_game_window)
+        self.init_btn.clicked.connect(self.run_manual_init)
 
         layout.addLayout(left, 1)
         layout.addLayout(mid, 1)
@@ -194,12 +209,15 @@ class TaskPage(QWidget):
                 logger.info("窗口强制调整成功 → 1280×720 + 贴左上角 (0,0)")
 
                 # 保存到全局
-                self.parent().game_window = game
+                main_window = self.window()
+                if main_window:
+                    main_window.game_window = game
 
                 QMessageBox.information(self, "绑定成功",
                                         "游戏窗口已成功绑定并强制为 1280×720\n位置：屏幕左上角 (0,0)\n已自动屏蔽“窗口已失效”弹窗")
 
-            self.bind_btn.setText("重新绑定")
+                logger.info("绑定完成，如需初始化请点击右侧【初始化】按钮")
+                self.bind_btn.setText("重新绑定")
 
         except Exception as e:
             import traceback
@@ -209,3 +227,31 @@ class TaskPage(QWidget):
             self.bind_btn.setText("绑定窗口")
         finally:
             self.bind_btn.setEnabled(True)
+
+    def run_manual_init(self):
+        game = getattr(self.window(), "game_window", None)
+        if not game:
+            QMessageBox.warning(self, "未绑定窗口", "请先绑定游戏窗口，再执行初始化。")
+            logger.warning("初始化请求被拒绝：未找到已绑定的游戏窗口")
+            return
+
+        self.init_btn.setEnabled(False)
+        self.init_btn.setText("初始化中...")
+
+        def worker():
+            try:
+                logger.info("开始执行手动初始化任务...")
+                init_task = InitEnvironment(game)
+                init_task.run()
+                logger.info("手动初始化任务执行完毕")
+            except Exception as e:
+                logger.error(f"初始化任务出现异常：{e}")
+                QMessageBox.critical(self, "初始化失败", f"初始化时出现异常：\n{e}")
+            finally:
+                QTimer.singleShot(0, self._reset_init_button)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _reset_init_button(self):
+        self.init_btn.setEnabled(True)
+        self.init_btn.setText("初始化")

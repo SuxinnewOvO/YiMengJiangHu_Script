@@ -3,7 +3,6 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QPushButton, QHBoxL
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 from Logger.ScriptLogger import logger
 import time
-from Tasks.InitEnvironment import InitEnvironment
 
 class RunThread(QThread):
     log_signal = pyqtSignal(str)
@@ -20,10 +19,6 @@ class RunThread(QThread):
             if not game or not game.is_valid():
                 self.log_signal.emit("错误：游戏窗口未绑定！请先在任务页点击“绑定窗口”")
                 return
-
-            # 执行初始化（隐藏任务）
-            init_task = InitEnvironment(game)
-            init_task.run()
 
             # 获取执行列表
             exec_list = self.main_window.task_page.exec_list
