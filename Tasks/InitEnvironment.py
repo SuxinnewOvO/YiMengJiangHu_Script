@@ -26,6 +26,7 @@ class InitEnvironment:
 
             keyboard.press_and_release("esc")
             time.sleep(0.3)
+            logger.debug("ESC 按键发送完毕")
             return True
         except Exception as e:
             logger.error(f"发送ESC失败: {e}")
@@ -35,6 +36,7 @@ class InitEnvironment:
         """识别设置界面是否打开"""
         img = self.window.screenshot()
         if img is None:
+            logger.warning("截图失败：未能获取游戏画面")
             return False
 
         # 截图为 RGB，需要转换为 OpenCV 的 BGR 才能正确匹配
@@ -53,9 +55,11 @@ class InitEnvironment:
         threshold = 0.8
         _, max_val, _, _ = cv2.minMaxLoc(result)
 
+        logger.debug(f"设置模板匹配置信度：{max_val:.3f} (阈值 {threshold})，模板路径：{template_path}")
         if max_val >= threshold:
             logger.info(f"检测到设置界面（置信度: {max_val:.3f}）")
             return True
+        logger.warning("未检测到设置界面，可能未成功打开或界面被遮挡")
         return False
 
     def switch_to_pc_mode(self):
@@ -65,15 +69,18 @@ class InitEnvironment:
 
         logger.info("正在切换为端游模式...")
         for x, y in hand_mode_coords:
+            logger.debug(f"点击手游模式坐标：({x}, {y})")
             self.window.click(x, y, delay=0.8)
         time.sleep(1.2)
         for x, y in pc_mode_coords:
+            logger.debug(f"点击端游模式坐标：({x}, {y})")
             self.window.click(x, y, delay=0.8)
         time.sleep(1.0)
 
     def escape_stuck(self):
         """脱离卡死，等待角色回到复活点"""
         logger.info("执行脱离卡死...")
+        logger.debug("点击脱离卡死按钮坐标： (1180, 480)")
         self.window.click(1180, 480, delay=0.5)
         time.sleep(3.5)
 
@@ -95,9 +102,10 @@ class InitEnvironment:
             logger.info(f"第 {attempt} 次尝试打开设置界面...")
             # 确保游戏窗口在前台再发 ESC
             try:
+                logger.debug("尝试将游戏窗口置于前台")
                 self.window.bring_to_front()
             except Exception:
-                pass
+                logger.warning("窗口置前台失败，继续尝试发送 ESC")
 
             self.press_esc()
             time.sleep(2.0)
